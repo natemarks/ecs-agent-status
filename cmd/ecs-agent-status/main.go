@@ -3,18 +3,19 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/natemarks/ecs-agent-status/version"
 	"os"
 	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/natemarks/ecs-agent-status/version"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/rs/zerolog"
 )
 
+// Agent is a struct that contains information about an ECS agent
 type Agent struct {
 	Cluster              string `json:"cluster"`
 	ContainerInstanceARN string `json:"containerInstanceArn"`
@@ -29,11 +30,7 @@ func (a Agent) String() string {
 // GetInput returns the value of the first positional argument to be used as the substring
 // to match cluster names
 func GetInput() string {
-	// Define flags
-	flag.Parse()
-
-	// Retrieve positional arguments
-	args := flag.Args()
+	args := os.Args[1:] // Retrieve all command-line arguments except the program name (index 0)
 
 	// Check if at least one argument is provided
 	if len(args) < 1 {
@@ -45,7 +42,7 @@ func GetInput() string {
 	return args[0]
 }
 
-// GetECSClustersWithSubstring returns a list of ECS clusters that contain the specified substring
+// GetECSClustersWithSubstring returns a list of ECS cluster names that contain the specified substring
 func GetECSClustersWithSubstring(substring string) ([]string, error) {
 	var clusters []string
 
@@ -82,6 +79,7 @@ func GetECSClustersWithSubstring(substring string) ([]string, error) {
 	return clusters, nil
 }
 
+// GetContainerInstancesForCluster returns a list of container instance ARNs for the specified ECS cluster
 func GetContainerInstancesForCluster(clusterName string) ([]string, error) {
 	var containerInstances []string
 
@@ -126,6 +124,8 @@ func GetContainerInstancesForCluster(clusterName string) ([]string, error) {
 	return containerInstances, nil
 }
 
+// GetEC2InstanceIDAndECSAgentStatus returns the EC2 instance ID and ECS agent status for the specified
+// container instance
 func GetEC2InstanceIDAndECSAgentStatus(clusterName, containerInstanceArn string) (string, string, error) {
 	var ec2InstanceID, ecsAgentStatus string
 
@@ -161,6 +161,7 @@ func GetEC2InstanceIDAndECSAgentStatus(clusterName, containerInstanceArn string)
 	return ec2InstanceID, ecsAgentStatus, nil
 }
 
+// GetAgentStatusForCluster returns a list of Agent structs for the specified ECS cluster
 func GetAgentStatusForCluster(clusterName string) ([]Agent, error) {
 	var agents []Agent
 
@@ -192,6 +193,7 @@ func GetAgentStatusForCluster(clusterName string) ([]Agent, error) {
 	return agents, nil
 }
 func main() {
+	failed := false
 	var agents []Agent
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	logger := zerolog.New(os.Stderr).With().Str("version", version.Version).Timestamp().Logger()
@@ -212,6 +214,12 @@ func main() {
 		}
 	}
 	for _, agent := range agents {
+		if agent.AgentStatus != "ACTIVE" {
+			failed = true
+		}
 		fmt.Println(agent)
+	}
+	if failed {
+		os.Exit(1)
 	}
 }

@@ -4,7 +4,7 @@
 # Be sure to place this BEFORE `include` directives, if any.
 DEFAULT_BRANCH := main
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
-PKG := github.com/sertvitas/ecs-agent-status
+PKG := github.com/natemarks/ecs-agent-status
 COMMIT := $(shell git rev-parse HEAD)
 PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
@@ -27,7 +27,7 @@ ${EXECUTABLES}:
         echo "COMMIT: $(COMMIT)" >> build/$(COMMIT)/$${o}/$${a}/version.txt ; \
         env GOOS=$${o} GOARCH=$${a} \
         go build  -v -o build/$(COMMIT)/$${o}/$${a}/$@ \
-				-ldflags="-X github.com/sertvitas/ecs-agent-status/version.Version=${COMMIT}" ${PKG}/cmd/$@; \
+				-ldflags="-X github.com/natemarks/ecs-agent-status/version.Version=${COMMIT}" ${PKG}/cmd/$@; \
 	  done \
     done ; \
 
